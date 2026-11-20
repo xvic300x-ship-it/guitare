@@ -1,0 +1,29 @@
+name: Déploiement Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Activer GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Préparer le site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Déployer
+        id: deployment
+        uses: actions/deploy-pages@v4
