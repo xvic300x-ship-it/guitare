@@ -10,4 +10,4 @@ Outil web interactif pour composer à la guitare :
 
 ## Utilisation
 
-Fichier unique, sans dépendance : ouvrir `index.html` dans un navigateur.
+Fichier unique, sans dépendance : ouvrir `index.html` (racine du dépôt, [https://xvic300x-ship-it.github.io/guitare/](https://xvic300x-ship-it.github.io/guitare/)) dans un navigateur.
