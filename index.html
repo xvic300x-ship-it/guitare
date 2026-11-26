@@ -88,6 +88,18 @@
   .cbx .dotp.f2{background:var(--accent);color:#241a05}
   .hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.6}
   .hidden{display:none}
+  .beats{display:flex;gap:6px;align-items:center}
+  .beat{width:14px;height:14px;border-radius:50%;background:var(--panel2);border:1px solid var(--border)}
+  .beat.on{background:var(--accent);border-color:var(--accent)}
+  .beat.one{width:18px;height:18px}
+  input[type=text]{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px}
+  input[type=text]:focus{outline:1px solid var(--accent)}
+  .fav-item{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px}
+  .fav-item .fname{font-weight:600;font-size:14px}
+  .fav-item .fkey{color:var(--root);font-weight:700;font-size:13px}
+  .fav-item .fnote{color:var(--muted);font-size:13px;flex:1}
+  .fav-item .del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:6px}
+  .fav-item .del:hover{color:var(--root);background:rgba(224,83,47,.12)}
 </style>
 </head>
 <body>
@@ -135,6 +147,37 @@
 </section>
 
 <section>
+  <h2>Métronome</h2>
+  <div class="panel">
+    <div class="row">
+      <label class="ctl">Battement <select id="metroPat">
+        <option value="rock">Rock</option>
+        <option value="metal">Metal</option>
+        <option value="shuffle">Shuffle (blues)</option>
+        <option value="ballade">Ballade</option>
+        <option value="clic">Clic simple</option>
+      </select></label>
+      <label class="ctl">Mesure <select id="metroSig">
+        <option value="4">4/4</option>
+        <option value="3">3/4</option>
+        <option value="2">2/4</option>
+      </select></label>
+      <label class="ctl">Tempo <span style="display:flex;align-items:center;gap:8px">
+        <input type="range" id="metroBpm" min="40" max="220" step="5" value="90">
+        <span class="bpmval" id="metroBpmVal">90 bpm</span>
+      </span></label>
+      <label class="ctl">Volume <span style="display:flex;align-items:center;gap:8px">
+        <input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.8">
+      </span></label>
+      <label class="chk" style="font-size:13px;color:var(--muted)"><input type="checkbox" id="metroSync" checked> Suivre le lecteur</label>
+      <button class="btn primary" id="btnMetro">Démarrer</button>
+      <div class="beats" id="metroBeats"></div>
+    </div>
+    <div class="hint">Avec « Suivre le lecteur », le métronome démarre et s'arrête avec la progression, au même tempo. Désactive-le pour un métronome libre avec ton propre tempo. Styles de batterie synthétisés (grosse caisse, caisse claire, charley).</div>
+  </div>
+</section>
+
+<section>
   <h2>Accords à jouer</h2>
   <div class="panel">
     <div class="nav" style="margin-bottom:12px">
@@ -143,6 +186,7 @@
       <button class="btn" id="btnNext">▶</button>
       <span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
       <button class="btn" id="btnStrum">Séquence complète</button>
+      <button class="btn" id="btnForme"></button>
     </div>
     <div class="now">
       <div>
@@ -172,15 +216,27 @@
   </div>
 </section>
 
+<section>
+  <h2>Mes progressions enregistrées</h2>
+  <div class="panel">
+    <div class="row">
+      <input type="text" id="favNote" placeholder="Note perso (optionnel) — ex : à bosser, vibe nocturne, solo en fin…" style="flex:1;min-width:220px">
+      <button class="btn primary" id="btnFavSave">Enregistrer la progression courante</button>
+    </div>
+    <div id="favList"></div>
+    <div class="hint">Les favoris (progression + tonalité + note perso) sont enregistrés dans ton navigateur : tu les retrouveras à ta prochaine visite.</div>
+  </div>
+</section>
+
 <script>
 "use strict";
 const NOTE_LATIN = ["Do","Do#","Ré","Ré#","Mi","Fa","Fa#","Sol","Sol#","La","La#","Si"];
 const NOTE_ANGLO = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const TUNING = [40,45,50,55,59,64];
 const MODE_OFFSETS = { maj: [0,2,4,5,7,9,11], min: [0,2,3,5,7,8,10] };
-const QUALITY_TONES = { "": [0,4,7], "m": [0,3,7], "7": [0,4,7,10], "m7": [0,3,7,10], "maj7": [0,4,7,11], "dim": [0,3,6], "5": [0,7] };
-const QUALITY_SUFFIX = { "": "", "m": "m", "7": "7", "m7": "m7", "maj7": "maj7", "dim": "dim", "5": "5" };
-const QUALITY_LABEL = { "": "majeur", "m": "mineur", "7": "dominante 7", "m7": "mineur 7", "maj7": "majeur 7", "dim": "diminué", "5": "power chord" };
+const QUALITY_TONES = { "": [0,4,7], "m": [0,3,7], "7": [0,4,7,10], "m7": [0,3,7,10], "maj7": [0,4,7,11], "dim": [0,3,6], "5": [0,7], "add9": [0,2,4,7], "sus2": [0,2,7], "sus4": [0,5,7] };
+const QUALITY_SUFFIX = { "": "", "m": "m", "7": "7", "m7": "m7", "maj7": "maj7", "dim": "dim", "5": "5", "add9": "add9", "sus2": "sus2", "sus4": "sus4" };
+const QUALITY_LABEL = { "": "majeur", "m": "mineur", "7": "dominante 7", "m7": "mineur 7", "maj7": "majeur 7", "dim": "diminué", "5": "power chord", "add9": "add9 (neuvième ajoutée)", "sus2": "sustenu 2", "sus4": "sustenu 4" };
 const SCALES = [
   {name:"majeure (ionienne)", steps:[0,2,4,5,7,9,11]},
   {name:"mineure naturelle (éolienne)", steps:[0,2,3,5,7,8,10]},
@@ -198,33 +254,49 @@ const SCALES = [
 const SHAPES = {
   "5": {
     r6: {rel:[0,2,null,null,null,null], fing:[1,3,null,null,null,null]},
-    r5: {rel:[null,0,2,null,null,null], fing:[null,1,3,null,null,null]}
+    r5: {rel:[null,0,2,null,null,null], fing:[null,1,3,null,null,null]},
+    r4: {rel:[null,null,0,2,null,null], fing:[null,null,1,3,null,null]}
   },
   "": {
     r6: {rel:[0,2,2,1,0,0], fing:[1,3,4,2,1,1]},
-    r5: {rel:[null,0,2,2,2,0], fing:[null,1,2,3,4,1]}
+    r5: {rel:[null,0,2,2,2,0], fing:[null,1,2,3,4,1]},
+    r4: {rel:[null,null,0,2,3,2], fing:[null,null,1,3,2]}
   },
   "m": {
     r6: {rel:[0,2,2,0,0,0], fing:[1,3,4,1,1,1]},
-    r5: {rel:[null,0,2,2,1,0], fing:[null,1,3,4,2,1]}
+    r5: {rel:[null,0,2,2,1,0], fing:[null,1,3,4,2,1]},
+    r4: {rel:[null,null,0,2,3,1], fing:[null,null,1,2,3,1]}
   },
   "7": {
     r6: {rel:[0,2,0,1,0,0], fing:[1,3,1,2,1,1]},
-    r5: {rel:[null,0,2,0,2,0], fing:[null,1,3,1,4,1]}
+    r5: {rel:[null,0,2,0,2,0], fing:[null,1,3,1,4,1]},
+    r4: {rel:[null,null,0,2,1,2], fing:[null,null,1,2,3]}
   },
   "m7": {
     r6: {rel:[0,2,0,0,0,0], fing:[1,3,1,1,1,1]},
-    r5: {rel:[null,0,2,0,1,0], fing:[null,1,3,1,2,1]}
+    r5: {rel:[null,0,2,0,1,0], fing:[null,1,3,1,2,1]},
+    r4: {rel:[null,null,0,2,1,1], fing:[null,null,2,1,1]}
   },
   "maj7": {
     r6: {rel:[0,2,1,1,0,0], fing:[1,3,2,2,1,1]},
-    r5: {rel:[null,0,2,1,2,0], fing:[null,1,3,2,4,1]}
+    r5: {rel:[null,0,2,1,2,0], fing:[null,1,3,2,4,1]},
+    r4: {rel:[null,null,0,2,2,2], fing:[null,null,1,2,2,2]}
+  },
+  "add9": {
+    r6: {rel:[0,2,2,1,0,2], fing:[1,3,4,2,1,4]}
+  },
+  "sus2": {
+    r6: {rel:[0,2,4,null,0,0], fing:[1,2,4,1,1,1]}
+  },
+  "sus4": {
+    r6: {rel:[0,2,2,2,0,0], fing:[1,3,4,3,1,1]}
   },
   "dim": {
     r6: {rel:[0,1,2,0,null,null], fing:[1,2,4,1,null,null]},
     r5: {rel:[null,0,1,2,0,null], fing:[null,1,2,4,1,null]}
   },
 };
+const FORM_NAMES = ["forme Mi (corde 6)", "forme La (corde 5)", "forme Ré (corde 4)"];
 const GENRES = [
   {name:"Rock", progs:[
     {name:"I–IV–V (rock'n'roll)", mode:"maj", deg:["I","IV","V"]},
@@ -232,12 +304,16 @@ const GENRES = [
     {name:"i–VI–III–VII (rock mineur)", mode:"min", deg:["i","VI","III","VII"]},
     {name:"i–VII–VI–VII (hard rock)", mode:"min", deg:["i","VII","VI","VII"]},
     {name:"i–iv–v (mineur pur)", mode:"min", deg:["i","iv","v"]},
+    {name:"I–VII–IV (stade)", mode:"maj", deg:["I","VII","IV"]},
+    {name:"vi–V–IV–iii (descente)", mode:"maj", deg:["vi","V","IV","iii"]},
+    {name:"i–VI–iv (mélancolie)", mode:"min", deg:["i","VI","iv"]},
   ]},
   {name:"Blues", progs:[
     {name:"12 mesures (quick change)", mode:"maj", deg:["I7","IV7","I7","I7","IV7","IV7","I7","I7","V7","IV7","I7","V7"]},
     {name:"12 mesures (lent)", mode:"maj", deg:["I7","I7","I7","I7","IV7","IV7","I7","I7","V7","IV7","I7","V7"]},
     {name:"Blues mineur en 12 mesures", mode:"min", deg:["i7","i7","iv7","i7","iv7","iv7","i7","i7","V7","iv7","i7","V7"]},
     {name:"Dominantes I7–IV7 (jam)", mode:"maj", deg:["I7","IV7"]},
+    {name:"8 mesures (turnaround)", mode:"maj", deg:["I7","V7","IV7","I7","V7","I7","V7"]},
   ]},
   {name:"Metal", progs:[
     {name:"i–VI–VII (épique)", mode:"min", power:true, deg:["i","VI","VII"]},
@@ -245,29 +321,46 @@ const GENRES = [
     {name:"i–V (diabolus in musica)", mode:"min", power:true, deg:["i","V"]},
     {name:"i–iv–v (sombre)", mode:"min", power:true, deg:["i","iv","v"]},
     {name:"i–i–VI–VII", mode:"min", power:true, deg:["i","i","VI","VII"]},
+    {name:"VI–VII–i (montée)", mode:"min", power:true, deg:["VI","VII","i"]},
+    {name:"i–v–VI–V (marche)", mode:"min", power:true, deg:["i","v","VI","V"]},
   ]},
   {name:"Pop", progs:[
     {name:"vi–IV–I–V (roue des 4 accords)", mode:"maj", deg:["vi","IV","I","V"]},
     {name:"I–vi–IV–V (années 50)", mode:"maj", deg:["I","vi","IV","V"]},
     {name:"I–IV–vi–V (pop moderne)", mode:"maj", deg:["I","IV","vi","V"]},
     {name:"IV–I–V–vi (pivot)", mode:"maj", deg:["IV","I","V","vi"]},
+    {name:"I–iii–IV (soleil)", mode:"maj", deg:["I","iii","IV"]},
+    {name:"ii7–IV–Imaj7 (cosy)", mode:"maj", deg:["ii7","IV","Imaj7"]},
   ]},
   {name:"Jazz", progs:[
     {name:"ii7–V7–Imaj7 (c'est ça le jazz)", mode:"maj", deg:["ii7","V7","Imaj7"]},
     {name:"Imaj7–vi7–ii7–V7 (anatole)", mode:"maj", deg:["Imaj7","vi7","ii7","V7"]},
     {name:"iii7–VI7–ii7–V7 (cercle)", mode:"maj", deg:["iii7","VI7","ii7","V7"]},
     {name:"ii7–V7 vamp (dorienne)", mode:"min", deg:["ii7","V7"]},
+    {name:"ii°–V7–i7 (mineur)", mode:"min", deg:["iidim","V7","i7"]},
+    {name:"Imaj7–VI7–ii7–V7 (avec dominantes)", mode:"maj", deg:["Imaj7","VI7","ii7","V7"]},
   ]},
   {name:"Folk / Country", progs:[
     {name:"I–IV–I–V (campfire)", mode:"maj", deg:["I","IV","I","V"]},
     {name:"IV–V–I (résolution)", mode:"maj", deg:["IV","V","I"]},
     {name:"I–vi–ii7–V7 (cercle)", mode:"maj", deg:["I","vi","ii7","V7"]},
     {name:"I–V–vi–IV (country pop)", mode:"maj", deg:["I","V","vi","IV"]},
+    {name:"vi–iii–IV–I (cascade)", mode:"maj", deg:["vi","iii","IV","I"]},
+    {name:"i–VII–VI (grave)", mode:"min", deg:["i","VII","VI"]},
   ]},
   {name:"Funk / Soul", progs:[
     {name:"I7–IV7 (mixolydien)", mode:"maj", deg:["I7","IV7"]},
     {name:"ii7–V7 (groove majeur)", mode:"maj", deg:["ii7","V7"]},
     {name:"i7–iv7 (dorien)", mode:"min", deg:["i7","iv7"]},
+    {name:"i7–IV7 (dorien, Oye Como Va)", mode:"min", deg:["i7","IV7"]},
+  ]},
+  {name:"Shoegaze", progs:[
+    {name:"I–VII–IV (mur de son, lent)", mode:"maj", deg:["I","VII","IV"]},
+    {name:"Imaj7–IVadd9 (voile)", mode:"maj", deg:["Imaj7","IVadd9"]},
+    {name:"vi7–IVadd9–Imaj7 (rêverie)", mode:"maj", deg:["vi7","IVadd9","Imaj7"]},
+    {name:"IVmaj7–Imaj7 (valse lente)", mode:"maj", deg:["IVmaj7","Imaj7"]},
+    {name:"i7–VI–III–VII (nuage)", mode:"min", deg:["i7","VI","III","VII"]},
+    {name:"ii7–IVadd9–Imaj7 (nappe)", mode:"maj", deg:["ii7","IVadd9","Imaj7"]},
   ]},
 ];
 const ICON_PLAY = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>';
@@ -282,7 +375,7 @@ function scalePcs(rootPc, steps){ return steps.map(s => (rootPc + s) % 12); }
 function midiFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
 
 function parseToken(tk, mode, tonic, power){
-  const m = tk.match(/^([IiVv]+)(dim|maj7|7|5)?$/);
+  const m = tk.match(/^([IiVv]+)(add9|sus4|sus2|dim|maj7|7|5)?$/);
   if (!m) return null;
   const num = m[1].toUpperCase();
   const idx = {I:0, II:1, III:2, IV:3, V:4, VI:5, VII:6}[num];
@@ -304,23 +397,38 @@ function buildProgression(genreIdx, progIdx, tonic){
   const g = GENRES[genreIdx];
   const p = g.progs[progIdx];
   const chords = p.deg.map(tk => parseToken(tk, p.mode, tonic, !!p.power)).filter(Boolean);
-  chords.forEach(c => { c.voicing = getVoicing(c.root, c.quality); c.label = noteName(c.root) + QUALITY_SUFFIX[c.quality]; });
+  chords.forEach(c => {
+    c.voicings = getVoicings(c.root, c.quality);
+    c.label = noteName(c.root) + QUALITY_SUFFIX[c.quality];
+  });
   return { def: p, chords };
 }
 
-function getVoicing(root, q){
-  const set = SHAPES[q];
-  if (!set) return null;
-  const f6 = (root + 12 - 4) % 12;
-  const f5 = (root + 12 - 9) % 12;
-  const use6 = f6 <= f5;
-  const base = use6 ? f6 : f5;
-  const shp = use6 ? set.r6 : set.r5;
+function makeVoicing(shp, base, rootString){
   const pos = shp.rel.map((rel, si) => rel === null ? null : {
     fret: base + rel,
     finger: (base === 0 && rel === 0) ? 0 : shp.fing[si],
   });
-  return { base, use6, rootString: use6 ? 0 : 1, pos };
+  return { base, rootString, pos };
+}
+
+function getVoicings(root, q){
+  const set = SHAPES[q];
+  if (!set) return [];
+  const f6 = (root + 12 - 4) % 12;
+  const f5 = (root + 12 - 9) % 12;
+  const f4 = (root + 12 - 2) % 12;
+  const out = [];
+  if (set.r6) out.push(makeVoicing(set.r6, f6, 0));
+  if (set.r5) out.push(makeVoicing(set.r5, f5, 1));
+  if (set.r4) out.push(makeVoicing(set.r4, f4, 2));
+  out.sort((a, b) => a.base - b.base || a.rootString - b.rootString);
+  return out;
+}
+
+function currentVoicing(c){
+  if (!c.voicings || !c.voicings.length) return null;
+  return c.voicings[state.voiIdx % c.voicings.length];
 }
 
 function suggestScales(chords){
@@ -364,11 +472,147 @@ function playNote(midi, when, dur){
   }catch(e){}
 }
 function strum(chord, when){
-  if (!chord.voicing) return;
-  chord.voicing.pos.forEach((p, si) => {
+  const v = currentVoicing(chord);
+  if (!v) return;
+  v.pos.forEach((p, si) => {
     if (!p) return;
     playNote(TUNING[si] + p.fret, (when || 0) + si * 0.045, 1.3);
   });
+}
+
+let noiseBuf = null;
+function getNoise(ctx){
+  if (noiseBuf) return noiseBuf;
+  noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return noiseBuf;
+}
+function scheduleDrum(type, t, vol){
+  try{
+    const ctx = actx;
+    const out = ctx.createGain();
+    out.gain.value = vol;
+    out.connect(ctx.destination);
+    if (type === "kick"){
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(150, t);
+      o.frequency.exponentialRampToValueAtTime(42, t + 0.11);
+      g.gain.setValueAtTime(0.95, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.26);
+      o.connect(g); g.connect(out);
+      o.start(t); o.stop(t + 0.3);
+    } else if (type === "snare"){
+      const n = ctx.createBufferSource(); n.buffer = getNoise(ctx);
+      const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1800; bp.Q.value = 0.9;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.7, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      n.connect(bp); bp.connect(g); g.connect(out);
+      n.start(t); n.stop(t + 0.2);
+      const o = ctx.createOscillator(), g2 = ctx.createGain();
+      o.type = "triangle"; o.frequency.value = 190;
+      g2.gain.setValueAtTime(0.4, t);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+      o.connect(g2); g2.connect(out);
+      o.start(t); o.stop(t + 0.1);
+    } else if (type === "hat" || type === "hatO"){
+      const n = ctx.createBufferSource(); n.buffer = getNoise(ctx);
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 7500;
+      const g = ctx.createGain();
+      const dur = type === "hatO" ? 0.28 : 0.045;
+      g.gain.setValueAtTime(0.35, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      n.connect(hp); hp.connect(g); g.connect(out);
+      n.start(t); n.stop(t + dur + 0.03);
+    } else if (type === "click" || type === "clickA"){
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = type === "clickA" ? 1800 : 1200;
+      g.gain.setValueAtTime(type === "clickA" ? 0.8 : 0.5, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+      o.connect(g); g.connect(out);
+      o.start(t); o.stop(t + 0.06);
+    }
+  }catch(e){}
+}
+
+const METRO = { playing: false, bpm: 90, pat: "rock", beats: 4, vol: 0.8, pos: 0, nextTime: 0, timer: null };
+
+function metroHits(){
+  const b = METRO.beats, end = b * 4;
+  const base = {
+    rock: [[0,"kick"],[4,"snare"],[8,"kick"],[12,"snare"],
+           [0,"hat"],[2,"hat"],[4,"hat"],[6,"hat"],[8,"hat"],[10,"hat"],[12,"hat"],[14,"hat"]],
+    metal: [[0,"kick"],[2,"kick"],[4,"kick"],[6,"kick"],[8,"kick"],[10,"kick"],[12,"kick"],[14,"kick"],
+            [4,"snare"],[12,"snare"],[0,"hat"],[4,"hat"],[8,"hat"],[12,"hat"]],
+    shuffle: [[0,"kick"],[8,"kick"],[4,"snare"],[12,"snare"],
+              [0,"hat"],[3,"hat"],[4,"hat"],[7,"hat"],[8,"hat"],[11,"hat"],[12,"hat"],[15,"hat"]],
+    ballade: [[0,"kick"],[6,"kick"],[8,"snare"],
+              [0,"hat"],[4,"hat"],[8,"hat"],[12,"hat"],[12,"hatO"]],
+  };
+  if (METRO.pat === "clic"){
+    const hits = [];
+    for (let i = 0; i < b; i++) hits.push([i * 4, i === 0 ? "clickA" : "click"]);
+    return hits;
+  }
+  return (base[METRO.pat] || base.rock).filter(h => h[0] < end);
+}
+
+function getCtx(){
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    return actx;
+  }catch(e){ return null; }
+}
+
+function metroTick(){
+  const ctx = getCtx();
+  if (!ctx || !METRO.playing) return;
+  const hits = metroHits();
+  while (METRO.nextTime < ctx.currentTime + 0.15){
+    hits.forEach(h => { if (h[0] === METRO.pos) scheduleDrum(h[1], METRO.nextTime, METRO.vol); });
+    const beatNum = Math.floor(METRO.pos / 4) % METRO.beats;
+    const delay = Math.max(0, (METRO.nextTime - ctx.currentTime) * 1000);
+    setTimeout(function(){ showBeat(beatNum); }, delay);
+    METRO.pos = (METRO.pos + 1) % (METRO.beats * 4);
+    METRO.nextTime += (60 / METRO.bpm) / 4;
+  }
+}
+
+function renderBeatDots(){
+  const box = el("metroBeats");
+  box.innerHTML = "";
+  for (let i = 0; i < METRO.beats; i++){
+    const d = document.createElement("span");
+    d.className = "beat" + (i === 0 ? " one" : "");
+    box.appendChild(d);
+  }
+}
+function showBeat(i){
+  const dots = el("metroBeats").children;
+  for (let k = 0; k < dots.length; k++) dots[k].className = "beat" + (k === i ? " on" : "") + (k === 0 ? " one" : "");
+}
+
+function startMetro(followBpm){
+  const ctx = getCtx();
+  if (!ctx) return;
+  if (followBpm) METRO.bpm = state.bpm;
+  METRO.playing = true;
+  METRO.pos = 0;
+  METRO.nextTime = ctx.currentTime + 0.1;
+  if (METRO.timer) clearInterval(METRO.timer);
+  METRO.timer = setInterval(metroTick, 30);
+  el("btnMetro").textContent = "Arrêter";
+  renderBeatDots();
+}
+function stopMetro(){
+  METRO.playing = false;
+  if (METRO.timer){ clearInterval(METRO.timer); METRO.timer = null; }
+  const b = el("btnMetro");
+  if (b) b.textContent = "Démarrer";
+  renderBeatDots();
 }
 
 const state = {
@@ -377,6 +621,7 @@ const state = {
   bpm: 90, beats: 4, playing: false,
   showDeg: true, sugIdx: 0, navMode: "prevnext",
   prog: null, sug: [], timer: null,
+  voiIdx: 0, lastCi: -1,
 };
 
 function el(id){ return document.getElementById(id); }
@@ -384,6 +629,7 @@ function el(id){ return document.getElementById(id); }
 function render(){
   state.prog = buildProgression(state.genreIdx, state.progIdx, state.tonic);
   if (state.ci >= state.prog.chords.length) state.ci = 0;
+  if (state.ci !== state.lastCi){ state.voiIdx = 0; state.lastCi = state.ci; }
   state.sug = suggestScales(state.prog.chords);
   if (state.sugIdx >= state.sug.length) state.sugIdx = 0;
   renderProgList();
@@ -467,8 +713,13 @@ function renderNow(){
   const bits = [];
   bits.push("<b>" + c.numeral + "</b> · " + QUALITY_LABEL[c.quality]);
   bits.push("notes : <b>" + c.tones.map(t => noteName((c.root + t) % 12)).join(" · ") + "</b>");
-  if (c.voicing){
-    bits.push("position : frette <b>" + c.voicing.base + "</b> · forme " + (c.voicing.use6 ? "Mi (corde de Mi grave)" : "La (corde de La)"));
+  const v = currentVoicing(c);
+  if (v){
+    bits.push("position : frette <b>" + v.base + "</b> · " + FORM_NAMES[v.rootString]);
+    el("btnForme").textContent = (c.voicings.length > 1 ? "Forme suivante : " : "Forme : ") + FORM_NAMES[v.rootString];
+    el("btnForme").classList.toggle("hidden", c.voicings.length < 2);
+  } else {
+    el("btnForme").classList.add("hidden");
   }
   el("chordMeta").innerHTML = bits.join("<br>");
   renderDiagram(c);
@@ -479,8 +730,8 @@ function renderNow(){
 function renderDiagram(c){
   const host = el("diagram");
   host.innerHTML = "";
-  if (!c.voicing) return;
-  const v = c.voicing;
+  const v = currentVoicing(c);
+  if (!v) return;
   const start = v.base <= 1 ? 1 : v.base;
   const cb = document.createElement("div");
   cb.className = "cbx";
@@ -586,8 +837,9 @@ function buildBoard(host, infoFn){
 function renderBoard1(){
   const c = state.prog.chords[state.ci];
   const map = {};
-  if (c.voicing){
-    c.voicing.pos.forEach((p, si) => {
+  const v = currentVoicing(c);
+  if (v){
+    v.pos.forEach((p, si) => {
       if (!p) return;
       const pc = (TUNING[si] + p.fret) % 12;
       map[si + ":" + p.fret] = {
@@ -655,6 +907,7 @@ function stopPlay(){
   if (state.timer){ clearInterval(state.timer); state.timer = null; }
   state.playing = false;
   el("btnPlay").innerHTML = ICON_PLAY + " Lecture";
+  if (el("metroSync") && el("metroSync").checked) stopMetro();
 }
 
 function startPlay(){
@@ -668,6 +921,87 @@ function startPlay(){
     render();
     strum(state.prog.chords[state.ci]);
   }, intervalMs());
+  if (el("metroSync") && el("metroSync").checked) startMetro(true);
+}
+
+const FAV_KEY = "guitare-favoris";
+let memFavs = null;
+function loadFavs(){
+  if (memFavs) return memFavs.slice();
+  try{ return JSON.parse(localStorage.getItem(FAV_KEY) || "[]"); }catch(e){ return []; }
+}
+function storeFavs(f){
+  memFavs = f.slice();
+  try{ localStorage.setItem(FAV_KEY, JSON.stringify(f)); }catch(e){}
+}
+function currentFav(){
+  const p = state.prog.def;
+  return {
+    genre: GENRES[state.genreIdx].name,
+    prog: p.name,
+    tonic: state.tonic,
+    note: el("favNote").value.trim(),
+  };
+}
+function renderFavs(){
+  const box = el("favList");
+  box.innerHTML = "";
+  const favs = loadFavs();
+  if (!favs.length){
+    const empty = document.createElement("div");
+    empty.className = "hint";
+    empty.style.marginTop = "0";
+    empty.textContent = "Aucun favori pour l'instant — lance une progression qui te plaît et enregistre-la ici.";
+    box.appendChild(empty);
+    return;
+  }
+  favs.forEach(function(fv, i){
+    const item = document.createElement("div");
+    item.className = "fav-item";
+    const nm = document.createElement("span");
+    nm.className = "fname";
+    nm.textContent = fv.prog;
+    const key = document.createElement("span");
+    key.className = "fkey";
+    key.textContent = "en " + NOTE_LATIN[fv.tonic];
+    const meta = document.createElement("span");
+    meta.className = "fnote";
+    meta.textContent = (fv.genre ? fv.genre + " · " : "") + (fv.note || "");
+    const load = document.createElement("button");
+    load.className = "btn";
+    load.textContent = "Charger";
+    load.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      stopPlay();
+      const gi = GENRES.findIndex(g => g.name === fv.genre);
+      const g = gi >= 0 ? GENRES[gi] : null;
+      if (g){
+        const pi = g.progs.findIndex(p => p.name === fv.prog);
+        if (pi >= 0){
+          state.genreIdx = gi;
+          state.progIdx = pi;
+        }
+      }
+      state.tonic = fv.tonic;
+      el("rootSel").value = String(state.tonic);
+      state.ci = 0;
+      renderGenreChips();
+      render();
+    });
+    const del = document.createElement("button");
+    del.className = "del";
+    del.title = "Supprimer";
+    del.textContent = "\u2715";
+    del.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      const f = loadFavs();
+      f.splice(i, 1);
+      storeFavs(f);
+      renderFavs();
+    });
+    item.appendChild(nm); item.appendChild(key); item.appendChild(meta); item.appendChild(load); item.appendChild(del);
+    box.appendChild(item);
+  });
 }
 
 function neighborChord(dir){
@@ -736,6 +1070,35 @@ if (typeof document !== "undefined"){
     render();
     strum(state.prog.chords[state.ci]);
   });
+  el("btnMetro").addEventListener("click", function(){
+    if (METRO.playing) stopMetro(); else startMetro(false);
+  });
+  el("metroPat").addEventListener("change", function(e){ METRO.pat = e.target.value; });
+  el("metroSig").addEventListener("change", function(e){ METRO.beats = Number(e.target.value); renderBeatDots(); });
+  el("metroBpm").addEventListener("input", function(e){
+    METRO.bpm = Number(e.target.value);
+    el("metroBpmVal").textContent = METRO.bpm + " bpm";
+  });
+  el("metroVol").addEventListener("input", function(e){ METRO.vol = Number(e.target.value); });
+  el("metroSync").addEventListener("change", function(e){
+    if (!e.target.checked) stopMetro();
+    else if (state.playing) startMetro(true);
+  });
+  el("btnFavSave").addEventListener("click", function(){
+    const f = loadFavs();
+    f.unshift(currentFav());
+    storeFavs(f);
+    el("favNote").value = "";
+    renderFavs();
+  });
+  el("btnForme").addEventListener("click", function(){
+    const c = state.prog.chords[state.ci];
+    if (!c.voicings || c.voicings.length < 2) return;
+    state.voiIdx = (state.voiIdx + 1) % c.voicings.length;
+    renderNow();
+    renderBoard1();
+    strum(c);
+  });
   el("btnStrum").addEventListener("click", function(){
     stopPlay();
     let t = 0;
@@ -744,6 +1107,8 @@ if (typeof document !== "undefined"){
       t += state.beats * (60 / state.bpm);
     });
   });
+  renderBeatDots();
+  renderFavs();
   render();
 }
 </script>
