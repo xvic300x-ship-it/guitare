@@ -9,6 +9,10 @@ Outil web interactif pour composer et improviser à la guitare :
 - **Lecteur** : navigation précédent/suivant (ou par degré), flèches, tempo réglable (40–220 bpm), temps par accord (1/2/4), lecture automatique qui enchaîne les accords en strum
 - **Gammes suggérées** pour improviser : le second fretboard affiche la gamme compatible (majeure, modes, mineures, pentatoniques, blues), fondamentale en rouge, notes de l'accord en cours en jaune
 - Audio WebAudio : clique toute note ou diagramme pour l'entendre ; « Séquence complète » joue toute la progression au tempo choisi
+- **Métronome** : patterns de batterie synthétisée (Rock, Metal, Shuffle blues, Ballade, Clic), mesure 2/4-3/4-4/4, tempo et volume réglables, indicateur de temps, synchro auto avec le lecteur (ou mode libre)
+- **Favoris** : enregistre tes progressions préférées avec leur tonalité et une note perso (stockées dans le navigateur)
+- **Plusieurs façons de jouer le même accord** : bouton « Forme suivante » pour cycler entre les formes Mi / La / Ré
+- Style **Shoegaze** : mur de son, voiles Imaj7–IVadd9, rêverie, nappes
 
 ## Utilisation
 
