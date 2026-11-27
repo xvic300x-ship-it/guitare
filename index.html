@@ -242,7 +242,7 @@
   <div class="panel">
     <div class="chipscales" id="scaleChips" style="margin-bottom:12px"></div>
     <div class="fb-wrap"><div id="board2"></div></div>
-    <div class="hint">Rond rouge = fondamentale de la gamme · rond jaune = notes de l'accord en cours · rond gris = autres notes de la gamme à utiliser pour improviser.</div>
+    <div class="hint">Clique sur une gamme pour changer le fretboard. Rond rouge = fondamentale de la gamme · rond jaune = notes de l'accord en cours · rond gris = autres notes de la gamme à utiliser pour improviser.</div>
   </div>
 </section>
 
@@ -540,18 +540,31 @@ function suggestScales(chords){
       const pcs = scalePcs(root, sd.steps);
       let full = 0, half = 0;
       chords.forEach(c => {
-        const ok = c.tones.every(t => pcs.includes((c.root + t) % 12));
+        // La gamme blues sur des accords de 7e (dominants ou mineurs) est l'idiome
+        // du blues : la tierce bleue remplace la tierce majeure, on crédite plein.
+        const ok = c.tones.every(t => pcs.includes((c.root + t) % 12)) ||
+          (sd.name === "blues" && (c.quality === "7" || c.quality === "m7") && pcs.includes(c.root));
         if (ok) full++; else if (pcs.includes(c.root)) half++;
       });
-      if (full === 0) return;
+      if (full === 0 && half === 0) return;
       let score = full * 2 + half * 0.5;
       if (root === modalRoot) score += 0.8;
       score -= sdi * 0.01;
-      out.push({ root, name: sd.name, full, total: chords.length, score });
+      out.push({ root, name: sd.name, full, total: chords.length, score, sig: pcs.slice().sort((a, b) => a - b).join(",") });
     });
   }
   out.sort((a, b) => b.score - a.score);
-  return out.slice(0, 6);
+  // Les 6 modes d'une même gamme partagent les mêmes notes (même fretboard).
+  // On ne garde donc que la meilleure gamme de chaque ensemble de notes distinct,
+  // pour proposer des fretboards réellement différents.
+  const seen = {};
+  const res = [];
+  for (let i = 0; i < out.length && res.length < 6; i++){
+    if (seen[out[i].sig]) continue;
+    seen[out[i].sig] = true;
+    res.push(out[i]);
+  }
+  return res;
 }
 
 let actx = null;
@@ -738,6 +751,7 @@ function render(){
   if (state.ci >= state.prog.chords.length) state.ci = 0;
   state.sug = suggestScales(state.prog.chords);
   if (state.sugIdx >= state.sug.length) state.sugIdx = 0;
+  renderGenreChips();
   renderProgList();
   renderSlots();
   renderNow();
@@ -987,13 +1001,34 @@ function renderBoard1(){
   });
 }
 
+function parentScaleLabel(rootPc, sd){
+  if (!sd) return "";
+  // Tonalités notées avec bémols : c'est la convention pour les gammes mères
+  // situées du côté bémol (ex. dorienne de Do → gamme de Si♭ majeur).
+  const FLAT = ["Do","Ré♭","Ré","Mi♭","Mi","Fa","Sol♭","Sol","La♭","La","Si♭","Si"];
+  const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+  const pcs = scalePcs(rootPc, sd.steps).slice().sort((a, b) => a - b);
+  for (let p = 0; p < 12; p++){
+    const mp = scalePcs(p, MAJOR).slice().sort((a, b) => a - b);
+    const same = pcs.length === mp.length && pcs.every((v, i) => v === mp[i]);
+    if (same) return "mêmes notes que " + FLAT[p] + " majeur";
+  }
+  for (let p = 0; p < 12; p++){
+    const mp = scalePcs(p, MAJOR);
+    if (pcs.every(v => mp.includes(v))) return "notes tirées de " + FLAT[p] + " majeur";
+  }
+  return "";
+}
+
 function renderScaleChips(){
   const box = el("scaleChips");
   box.innerHTML = "";
   state.sug.forEach((s, i) => {
     const b = document.createElement("button");
     b.className = "schip" + (i === state.sugIdx ? " selected" : "") + (i === 0 ? " best" : "");
-    b.innerHTML = noteName(s.root) + " " + s.name + "<small>" + s.full + "/" + s.total + " accords</small>";
+    const parent = parentScaleLabel(s.root, SCALES.find(x => x.name === s.name));
+    b.innerHTML = noteName(s.root) + " " + s.name + "<small>" + s.full + "/" + s.total + " accords" +
+      (parent ? " · " + parent : "") + "</small>";
     b.addEventListener("click", function(){
       state.sugIdx = i;
       renderScaleChips();
