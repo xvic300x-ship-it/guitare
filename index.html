@@ -738,6 +738,7 @@ function render(){
   if (state.ci >= state.prog.chords.length) state.ci = 0;
   state.sug = suggestScales(state.prog.chords);
   if (state.sugIdx >= state.sug.length) state.sugIdx = 0;
+  renderGenreChips();
   renderProgList();
   renderSlots();
   renderNow();
