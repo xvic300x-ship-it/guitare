@@ -116,12 +116,21 @@
   .fav-item .fnote{color:var(--muted);font-size:13px;flex:1}
   .fav-item .del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:6px}
   .fav-item .del:hover{color:var(--root);background:rgba(224,83,47,.12)}
+  .tabs{display:flex;gap:8px;margin:0 0 18px}
+  .tab{background:var(--panel);border:1px solid var(--border);border-radius:10px 10px 0 0;padding:10px 20px;font-size:15px;font-weight:600;cursor:pointer;border-bottom:none;opacity:.55}
+  .tab:hover{opacity:.85}
+  .tab.selected{background:var(--panel2);border-color:var(--accent);opacity:1;color:var(--accent)}
 </style>
 </head>
 <body>
 <h1>Progressions d'accords — Guitare</h1>
+<div class="tabs">
+  <button class="tab selected" id="tabProgs" type="button">Progressions d'accords</button>
+  <button class="tab" id="tabGamme" type="button">Gamme</button>
+</div>
 <div class="sub">Choisis un style et une progression (ou lance l'aléatoire) : le premier fretboard t'affiche les accords avec l'emplacement des doigts, le second propose les gammes pour improviser par-dessus.</div>
 
+<div id="pageProgs">
 <section>
   <div class="panel">
     <h3>Style</h3>
@@ -254,9 +263,31 @@
       <button class="btn primary" id="btnFavSave">Enregistrer la progression courante</button>
     </div>
     <div id="favList"></div>
-    <div class="hint">Les favoris (progression + tonalité + note perso) sont enregistrés dans ton navigateur : tu les retrouveras à ta prochaine visite.</div>
+    <div class="hint">Les favoris (progression + tonalité + note perso + formes choisies) sont enregistrés dans ton navigateur : tu les retrouveras à ta prochaine visite.</div>
   </div>
 </section>
+</div>
+
+<div id="pageGamme" class="hidden">
+<section>
+  <div class="panel">
+    <h3>Explorateur de gamme</h3>
+    <div class="row">
+      <label class="ctl">Gamme <select id="gSel"></select></label>
+      <label class="ctl">Tonique <select id="gRootSel"></select></label>
+      <label class="ctl">Ronds affichés <select id="gModeSel">
+        <option value="notes">Notes</option>
+        <option value="deg">Degrés</option>
+      </select></label>
+    </div>
+    <div class="meta" id="gInfo"></div>
+    <div id="gBoard" style="overflow-x:auto;padding:6px 0"></div>
+    <h3 style="margin-top:14px">Accords de la gamme — clique pour entendre</h3>
+    <div class="chipscales" id="gChords"></div>
+    <div class="hint">Rond rouge = tonique de la gamme · ronds jaunes = autres notes de la gamme. Clique sur une note pour l'entendre, sur un accord pour l'écouter.</div>
+  </div>
+</section>
+</div>
 
 <script>
 "use strict";
@@ -265,7 +296,7 @@ const NOTE_ANGLO = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const TUNING = [40,45,50,55,59,64];
 const MODE_OFFSETS = { maj: [0,2,4,5,7,9,11], min: [0,2,3,5,7,8,10] };
 const QUALITY_TONES = { "": [0,4,7], "m": [0,3,7], "7": [0,4,7,10], "m7": [0,3,7,10], "maj7": [0,4,7,11], "dim": [0,3,6], "5": [0,7], "add9": [0,2,4,7], "sus2": [0,2,7], "sus4": [0,5,7] };
-const QUALITY_SUFFIX = { "": "", "m": "m", "7": "7", "m7": "m7", "maj7": "maj7", "dim": "dim", "5": "5", "add9": "add9", "sus2": "sus2", "sus4": "sus4" };
+const QUALITY_SUFFIX = { "": "", "m": "m", "7": "7", "m7": "m7", "maj7": "maj7", "dim": "dim", "5": "5", "add9": "add9", "sus2": "sus2", "sus4": "sus4", "aug": "aug" };
 const QUALITY_LABEL = { "": "majeur", "m": "mineur", "7": "dominante 7", "m7": "mineur 7", "maj7": "majeur 7", "dim": "diminué", "5": "power chord", "add9": "add9 (neuvième ajoutée)", "sus2": "sustenu 2", "sus4": "sustenu 4" };
 const SCALES = [
   {name:"majeure (ionienne)", steps:[0,2,4,5,7,9,11]},
@@ -1058,6 +1089,118 @@ function renderBoard2(){
 
 function intervalMs(){ return (60 / state.bpm) * state.beats * 1000; }
 
+/* ---------- Onglet Gamme ---------- */
+const GTAB = { scale: 0, root: 0, deg: false };
+
+function fillGScales(){
+  const sel = el("gSel");
+  sel.innerHTML = "";
+  SCALES.forEach(function(sd, i){
+    const o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = sd.name;
+    sel.appendChild(o);
+  });
+  sel.value = String(GTAB.scale);
+}
+
+function fillGRoots(){
+  const sel = el("gRootSel");
+  sel.innerHTML = "";
+  for (let p = 0; p < 12; p++){
+    const o = document.createElement("option");
+    o.value = String(p);
+    o.textContent = noteName(p);
+    sel.appendChild(o);
+  }
+  sel.value = String(GTAB.root);
+}
+
+function scaleFormula(steps){
+  const names = { 1: "½", 2: "T", 3: "T½", 4: "2T", 6: "3T" };
+  const parts = [];
+  for (let i = 0; i < steps.length; i++){
+    const a = steps[i];
+    const b = i + 1 < steps.length ? steps[i + 1] : steps[0] + 12;
+    parts.push(names[b - a] || String(b - a) + "½");
+  }
+  return parts.join(" · ");
+}
+
+function triadsInScale(rootPc, steps){
+  // Triades (majeure / mineure / dim / aug) dont toutes les notes sont dans la gamme
+  const pcs = scalePcs(rootPc, steps);
+  const QUALS = [["", [0, 4, 7]], ["m", [0, 3, 7]], ["dim", [0, 3, 6]], ["aug", [0, 4, 8]]];
+  const out = [];
+  pcs.forEach(function(pc){
+    QUALS.forEach(function(qd){
+      const tones = qd[1].map(t => (pc + t) % 12);
+      if (tones.every(t => pcs.includes(t))){
+        out.push({ root: pc, quality: qd[0], tones: qd[1] });
+      }
+    });
+  });
+  return out;
+}
+
+function playChordNotes(rootPc, tones){
+  (tones || [0, 4, 7]).forEach(function(t, k){
+    playNote(48 + ((rootPc + t) % 12) + 12, k * 0.06, 1.8);
+  });
+}
+
+function renderScaleTab(){
+  const sd = SCALES[GTAB.scale];
+  const pcs = scalePcs(GTAB.root, sd.steps);
+  el("gInfo").innerHTML = "<b>" + noteName(GTAB.root) + " " + sd.name + "</b> — " +
+    pcs.map(p => noteName(p)).join(" · ") +
+    "<br><span class=\"sec\">formule : " + scaleFormula(sd.steps) +
+    (pcs.length === 7 ? " · 7 notes" : " · " + pcs.length + " notes") + "</span>";
+  buildBoard(el("gBoard"), function(si, f){
+    const pc = (TUNING[si] + f) % 12;
+    const idx = pcs.indexOf(pc);
+    if (idx === -1) return null;
+    return {
+      text: GTAB.deg ? String(idx + 1) : noteName(pc),
+      cls: pc === GTAB.root ? "rt" : "ct",
+      title: noteName(pc) + " — " + (pc === GTAB.root ? "tonique" : "degré " + (idx + 1)),
+    };
+  });
+  // Accords compatibles avec la gamme
+  const box = el("gChords");
+  box.innerHTML = "";
+  const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
+  triadsInScale(GTAB.root, sd.steps).forEach(function(ch){
+    const deg = pcs.indexOf(ch.root);
+    let num = "";
+    if (deg >= 0 && pcs.length === 7){
+      num = ROMAN[deg];
+      if (ch.quality === "m" || ch.quality === "dim") num = num.toLowerCase();
+      if (ch.quality === "dim") num += "°";
+      if (ch.quality === "aug") num += "+";
+      num = " (" + num + ")";
+    }
+    const b = document.createElement("button");
+    b.className = "schip";
+    b.innerHTML = "<b>" + noteName(ch.root) + QUALITY_SUFFIX[ch.quality] + "</b>" + num +
+      "<small>" + ch.tones.map(t => noteName((ch.root + t) % 12)).join(" · ") + "</small>";
+    b.title = "Écouter " + noteName(ch.root) + QUALITY_SUFFIX[ch.quality];
+    b.addEventListener("click", function(){
+      playChordNotes(ch.root, ch.tones);
+    });
+    box.appendChild(b);
+  });
+}
+
+function switchTab(tab){
+  const progs = tab === "progs";
+  el("pageProgs").classList.toggle("hidden", !progs);
+  el("pageGamme").classList.toggle("hidden", progs);
+  el("tabProgs").classList.toggle("selected", progs);
+  el("tabGamme").classList.toggle("selected", !progs);
+  if (!progs) renderScaleTab();
+}
+
 function stopPlay(){
   if (state.timer){ clearInterval(state.timer); state.timer = null; }
   state.playing = false;
@@ -1218,9 +1361,16 @@ if (typeof document !== "undefined"){
   renderGenreChips();
   fillRoots();
   el("rootSel").addEventListener("change", function(e){ state.tonic = Number(e.target.value); render(); });
-  el("namingSel").addEventListener("change", function(e){ state.naming = e.target.value; fillRoots(); render(); });
-  el("fretSel").addEventListener("change", function(e){ state.nFrets = Number(e.target.value); renderBoard1(); renderBoard2(); });
+  el("namingSel").addEventListener("change", function(e){ state.naming = e.target.value; fillRoots(); fillGRoots(); render(); renderScaleTab(); });
+  el("fretSel").addEventListener("change", function(e){ state.nFrets = Number(e.target.value); renderBoard1(); renderBoard2(); renderScaleTab(); });
   el("navModeSel").addEventListener("change", function(e){ state.navMode = e.target.value; renderNow(); });
+  el("tabProgs").addEventListener("click", function(){ switchTab("progs"); });
+  el("tabGamme").addEventListener("click", function(){ switchTab("gamme"); });
+  fillGScales();
+  fillGRoots();
+  el("gSel").addEventListener("change", function(e){ GTAB.scale = Number(e.target.value); renderScaleTab(); });
+  el("gRootSel").addEventListener("change", function(e){ GTAB.root = Number(e.target.value); fillGRoots(); renderScaleTab(); });
+  el("gModeSel").addEventListener("change", function(e){ GTAB.deg = e.target.value === "deg"; renderScaleTab(); });
   el("bpm").addEventListener("input", function(e){
     state.bpm = Number(e.target.value);
     el("bpmVal").textContent = state.bpm + " bpm";
@@ -1284,6 +1434,7 @@ if (typeof document !== "undefined"){
   renderBeatDots();
   renderFavs();
   render();
+  renderScaleTab();
 }
 </script>
 </body>
