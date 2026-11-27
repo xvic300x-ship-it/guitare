@@ -125,6 +125,9 @@
     .slabel{font-size:9px}
     .frow .fcell{height:30px}
   }
+  .topbar{display:flex;gap:14px;align-items:flex-end;justify-content:flex-end;margin:0 0 10px;flex-wrap:wrap}
+  .topbar label.ctl{font-size:11px}
+  .topbar select{padding:5px 8px;font-size:13px}
   .tabs{display:flex;gap:8px;margin:0 0 18px}
   .tab{background:var(--panel);border:1px solid var(--border);border-radius:10px 10px 0 0;padding:10px 20px;font-size:15px;font-weight:600;cursor:pointer;border-bottom:none;opacity:.55}
   .tab:hover{opacity:.85}
@@ -133,6 +136,16 @@
 </head>
 <body>
 <h1>Progressions d'accords — Guitare</h1>
+<div class="topbar">
+  <label class="ctl">Thème <select id="themeSel">
+    <option value="sombre">Sombre</option>
+    <option value="clair">Clair</option>
+  </select></label>
+  <label class="ctl">Format des notes <select id="namingSel">
+    <option value="latin">Do Ré Mi (latin)</option>
+    <option value="anglo">C D E (anglo)</option>
+  </select></label>
+</div>
 <div class="tabs">
   <button class="tab selected" id="tabProgs" type="button">Progressions d'accords</button>
   <button class="tab" id="tabGamme" type="button">Gamme</button>
@@ -147,15 +160,7 @@
     <h3>Progressions — clique pour charger ; « Aléatoire » pioche parmi celles du style</h3>
     <div class="progs" id="progList"></div>
     <div class="row" style="margin-top:14px">
-      <label class="ctl">Thème <select id="themeSel">
-        <option value="sombre">Sombre</option>
-        <option value="clair">Clair</option>
-      </select></label>
       <label class="ctl">Tonique <select id="rootSel"></select></label>
-      <label class="ctl">Notation <select id="namingSel">
-        <option value="latin">Do Ré Mi (latin)</option>
-        <option value="anglo">C D E (anglo)</option>
-      </select></label>
       <label class="ctl">Frettes affichées <select id="fretSel">
         <option value="12">12</option>
         <option value="15">15</option>
