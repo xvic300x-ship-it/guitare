@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#121418; --panel:#1c2027; --panel2:#232833; --border:#2e3542;
-    --text:#e8ecf1; --muted:#8b95a5; --accent:#f5a623; --root:#e0532f;
+    --text:#f4f7fb; --muted:#c3cbd8; --accent:#f5a623; --root:#ff6a3d;
     --wire:rgba(255,255,255,.14);
   }
   *{box-sizing:border-box}
@@ -78,15 +78,30 @@
   /* diagramme d'accord vertical */
   .cbx{display:grid;grid-template-columns:26px repeat(6,26px);width:fit-content}
   .cbx .lab{font-size:10px;color:var(--muted);display:flex;align-items:flex-end;justify-content:flex-end;padding:0 6px 2px 0}
-  .cbx .top{height:18px;display:flex;align-items:flex-start;justify-content:center;font-size:13px;color:#aab4c2}
-  .cbx .top.muted{color:#5b6470}
+  .cbx .top{height:18px;display:flex;align-items:flex-start;justify-content:center;font-size:13px;color:#c3cbd8}
+  .cbx .top.muted{color:#8b95a5}
   .cbx .fc{height:30px;border-bottom:1px solid var(--wire);border-left:1px solid var(--wire);position:relative}
   .cbx .fc:last-child{border-right:1px solid var(--wire)}
   .cbx .fc.nut{border-top:4px solid #d8cbb4}
   .cbx .dotp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800}
   .cbx .dotp.f1{background:var(--root);color:#fff}
   .cbx .dotp.f2{background:var(--accent);color:#241a05}
+  body.light{--bg:#f2f4f8;--panel:#ffffff;--panel2:#edf0f5;--border:#c9d1dc;--text:#1b2230;--muted:#4d5866;--accent:#b87700;--root:#c43d1b;--wire:rgba(0,0,0,.16)}
+  body.light .mark.sc{background:#dde3ec;color:#39424f}
+  body.light .chip.selected,body.light .slot.current,body.light .prog-item.active,body.light .schip.selected{background:#ffe9c2}
+  body.light .frow .fcell.nut{background:rgba(0,0,0,.05);border-right-color:#8a7d68}
+  body.light .frow.str::before{background:linear-gradient(90deg,#8f887a,#6e675c)}
+  body.light .inlay .d{background:rgba(80,70,55,.3)}
+  body.light .cbx .dotp.f1{color:#fff}
+  body.light .cbx .top{color:#5b6470}
+  body.light .cbx .top.muted{color:#8b95a5}
+  body.light .cbx .dotp.f2{color:#3d2a00}
+  body.light .mark.op{border-color:#5b6470;color:#5b6470}
   .hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.6}
+  .notesbox{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin-top:10px;font-size:16px;width:fit-content}
+  .notesbox b{font-weight:700}
+  .notesbox .sec{color:var(--muted);font-size:13px}
+  .notesbox .rt{color:var(--root)}
   .hidden{display:none}
   .beats{display:flex;gap:6px;align-items:center}
   .beat{width:14px;height:14px;border-radius:50%;background:var(--panel2);border:1px solid var(--border)}
@@ -110,9 +125,13 @@
   <div class="panel">
     <h3>Style</h3>
     <div class="row" id="genreChips" style="margin-bottom:14px"></div>
-    <h3>Progressions (coche plusieurs pour l'aléatoire)</h3>
+    <h3>Progressions — clique pour charger ; « Aléatoire » pioche parmi celles du style</h3>
     <div class="progs" id="progList"></div>
     <div class="row" style="margin-top:14px">
+      <label class="ctl">Thème <select id="themeSel">
+        <option value="sombre">Sombre</option>
+        <option value="clair">Clair</option>
+      </select></label>
       <label class="ctl">Tonique <select id="rootSel"></select></label>
       <label class="ctl">Notation <select id="namingSel">
         <option value="latin">Do Ré Mi (latin)</option>
@@ -192,6 +211,7 @@
       <div>
         <div class="bigname" id="chordName"></div>
         <div class="meta" id="chordMeta"></div>
+        <div class="notesbox" id="notesBox"></div>
       </div>
       <div id="diagram"></div>
     </div>
@@ -202,8 +222,14 @@
 <section>
   <h2>Manche — accords et doigts</h2>
   <div class="panel">
+    <div class="row">
+      <label class="ctl">Ronds affichés <select id="markModeSel">
+        <option value="notes">Nom des notes</option>
+        <option value="doigts">Numéro des doigts</option>
+      </select></label>
+    </div>
     <div class="fb-wrap"><div id="board1"></div></div>
-    <div class="hint">Chiffre dans le rond = doigt (1 index · 2 majeur · 3 annulaire · 4 auriculaire). Rond rouge = fondamentale de l'accord · rond jaune = autres notes de l'accord · rond vide = corde à vide. Clique sur une note du manche pour l'entendre.</div>
+    <div class="hint">Rond rouge = fondamentale de l'accord · rond jaune = autres notes de l'accord · rond vide = corde à vide. Survole un rond pour voir le doigt à utiliser (1 index · 2 majeur · 3 annulaire · 4 auriculaire). Clique sur une note pour l'entendre.</div>
   </div>
 </section>
 
@@ -260,7 +286,7 @@ const SHAPES = {
   "": {
     r6: {rel:[0,2,2,1,0,0], fing:[1,3,4,2,1,1]},
     r5: {rel:[null,0,2,2,2,0], fing:[null,1,2,3,4,1]},
-    r4: {rel:[null,null,0,2,3,2], fing:[null,null,1,3,2]}
+    r4: {rel:[null,null,0,2,3,2], fing:[null,null,1,2,3,2]}
   },
   "m": {
     r6: {rel:[0,2,2,0,0,0], fing:[1,3,4,1,1,1]},
@@ -270,12 +296,12 @@ const SHAPES = {
   "7": {
     r6: {rel:[0,2,0,1,0,0], fing:[1,3,1,2,1,1]},
     r5: {rel:[null,0,2,0,2,0], fing:[null,1,3,1,4,1]},
-    r4: {rel:[null,null,0,2,1,2], fing:[null,null,1,2,3]}
+    r4: {rel:[null,null,0,2,1,2], fing:[null,null,1,3,2,4]}
   },
   "m7": {
     r6: {rel:[0,2,0,0,0,0], fing:[1,3,1,1,1,1]},
     r5: {rel:[null,0,2,0,1,0], fing:[null,1,3,1,2,1]},
-    r4: {rel:[null,null,0,2,1,1], fing:[null,null,2,1,1]}
+    r4: {rel:[null,null,0,2,1,1], fing:[null,null,1,3,2,2]}
   },
   "maj7": {
     r6: {rel:[0,2,1,1,0,0], fing:[1,3,2,2,1,1]},
@@ -283,7 +309,8 @@ const SHAPES = {
     r4: {rel:[null,null,0,2,2,2], fing:[null,null,1,2,2,2]}
   },
   "add9": {
-    r6: {rel:[0,2,2,1,0,2], fing:[1,3,4,2,1,4]}
+    r6: {rel:[0,null,3,2,1,3], fing:[1,null,3,2,1,4]},
+    r5: {rel:[null,0,2,4,2,0], fing:[null,1,2,4,3,1]}
   },
   "sus2": {
     r6: {rel:[0,2,4,null,0,0], fing:[1,2,4,1,1,1]}
@@ -299,6 +326,7 @@ const SHAPES = {
 const FORM_NAMES = ["forme Mi (corde 6)", "forme La (corde 5)", "forme Ré (corde 4)"];
 const GENRES = [
   {name:"Rock", progs:[
+    {name:"I–V–IV (blues rock)", mode:"maj", deg:["I","V","IV"]},
     {name:"I–IV–V (rock'n'roll)", mode:"maj", deg:["I","IV","V"]},
     {name:"I–V–vi–IV (pop rock)", mode:"maj", deg:["I","V","vi","IV"]},
     {name:"i–VI–III–VII (rock mineur)", mode:"min", deg:["i","VI","III","VII"]},
@@ -314,6 +342,7 @@ const GENRES = [
     {name:"Blues mineur en 12 mesures", mode:"min", deg:["i7","i7","iv7","i7","iv7","iv7","i7","i7","V7","iv7","i7","V7"]},
     {name:"Dominantes I7–IV7 (jam)", mode:"maj", deg:["I7","IV7"]},
     {name:"8 mesures (turnaround)", mode:"maj", deg:["I7","V7","IV7","I7","V7","I7","V7"]},
+    {name:"i7–VI7–i7–V7 (turnaround mineur)", mode:"min", deg:["i7","VI7","i7","V7"]},
   ]},
   {name:"Metal", progs:[
     {name:"i–VI–VII (épique)", mode:"min", power:true, deg:["i","VI","VII"]},
@@ -323,6 +352,7 @@ const GENRES = [
     {name:"i–i–VI–VII", mode:"min", power:true, deg:["i","i","VI","VII"]},
     {name:"VI–VII–i (montée)", mode:"min", power:true, deg:["VI","VII","i"]},
     {name:"i–v–VI–V (marche)", mode:"min", power:true, deg:["i","v","VI","V"]},
+    {name:"i–VI–iv–V (hymne)", mode:"min", power:true, deg:["i","VI","iv","V"]},
   ]},
   {name:"Pop", progs:[
     {name:"vi–IV–I–V (roue des 4 accords)", mode:"maj", deg:["vi","IV","I","V"]},
@@ -331,6 +361,8 @@ const GENRES = [
     {name:"IV–I–V–vi (pivot)", mode:"maj", deg:["IV","I","V","vi"]},
     {name:"I–iii–IV (soleil)", mode:"maj", deg:["I","iii","IV"]},
     {name:"ii7–IV–Imaj7 (cosy)", mode:"maj", deg:["ii7","IV","Imaj7"]},
+    {name:"I–vi–iii–IV (Pachelbel pop)", mode:"maj", deg:["I","vi","iii","IV"]},
+    {name:"IV–iii–ii7–I (descente douce)", mode:"maj", deg:["IV","iii","ii7","I"]},
   ]},
   {name:"Jazz", progs:[
     {name:"ii7–V7–Imaj7 (c'est ça le jazz)", mode:"maj", deg:["ii7","V7","Imaj7"]},
@@ -339,6 +371,7 @@ const GENRES = [
     {name:"ii7–V7 vamp (dorienne)", mode:"min", deg:["ii7","V7"]},
     {name:"ii°–V7–i7 (mineur)", mode:"min", deg:["iidim","V7","i7"]},
     {name:"Imaj7–VI7–ii7–V7 (avec dominantes)", mode:"maj", deg:["Imaj7","VI7","ii7","V7"]},
+    {name:"Imaj7–ii7–iii7–IVmaj7 (escalier)", mode:"maj", deg:["Imaj7","ii7","iii7","IVmaj7"]},
   ]},
   {name:"Folk / Country", progs:[
     {name:"I–IV–I–V (campfire)", mode:"maj", deg:["I","IV","I","V"]},
@@ -347,6 +380,7 @@ const GENRES = [
     {name:"I–V–vi–IV (country pop)", mode:"maj", deg:["I","V","vi","IV"]},
     {name:"vi–iii–IV–I (cascade)", mode:"maj", deg:["vi","iii","IV","I"]},
     {name:"i–VII–VI (grave)", mode:"min", deg:["i","VII","VI"]},
+    {name:"I–V–vi–iii–IV (canon de Pachelbel)", mode:"maj", deg:["I","V","vi","iii","IV"]},
   ]},
   {name:"Funk / Soul", progs:[
     {name:"I7–IV7 (mixolydien)", mode:"maj", deg:["I7","IV7"]},
@@ -361,6 +395,8 @@ const GENRES = [
     {name:"IVmaj7–Imaj7 (valse lente)", mode:"maj", deg:["IVmaj7","Imaj7"]},
     {name:"i7–VI–III–VII (nuage)", mode:"min", deg:["i7","VI","III","VII"]},
     {name:"ii7–IVadd9–Imaj7 (nappe)", mode:"maj", deg:["ii7","IVadd9","Imaj7"]},
+    {name:"I–vi–IV–IV (réverb)", mode:"maj", deg:["I","vi","IV","IV"]},
+    {name:"i–VII–VI–VII (brume)", mode:"min", deg:["i","VII","VI","VII"]},
   ]},
 ];
 const ICON_PLAY = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>';
@@ -404,26 +440,73 @@ function buildProgression(genreIdx, progIdx, tonic){
   return { def: p, chords };
 }
 
-function makeVoicing(shp, base, rootString){
+function makeVoicing(shp, base, rootString, kind){
   const pos = shp.rel.map((rel, si) => rel === null ? null : {
     fret: base + rel,
     finger: (base === 0 && rel === 0) ? 0 : shp.fing[si],
   });
-  return { base, rootString, pos };
+  return { base, rootString, pos, kind };
+}
+
+function voicingLabel(v){
+  if (v.kind === "p") return "triade cordes " + (6 - v.rootString) + "·" + (5 - v.rootString) + "·" + (4 - v.rootString);
+  return FORM_NAMES[v.rootString];
+}
+
+function partialVoicings(root, q){
+  const tones = QUALITY_TONES[q];
+  if (!tones || tones.length !== 3) return [];
+  const target = tones.map(t => (root + t) % 12);
+  const out = [];
+  [[2,3,4],[3,4,5]].forEach(function(set){
+    for (let base = 0; base <= Math.max(1, state.nFrets - 3); base++){
+      const pos = set.map(function(si){
+        for (let f = base; f <= base + 3; f++){
+          if (target.includes((TUNING[si] + f) % 12)) return { fret: f };
+        }
+        return null;
+      });
+      if (pos.some(p => p === null)) continue;
+      const pcs = new Set(pos.map((p, k) => (TUNING[set[k]] + p.fret) % 12));
+      if (pcs.size < 3) continue;
+      const rels = [...new Set(pos.map(p => p.fret - base))].sort((a, b) => a - b);
+      out.push({
+        base, rootString: set[0], kind: "p",
+        pos: [0, 1, 2, 3, 4, 5].map(function(si){
+          const k = set.indexOf(si);
+          if (k === -1) return null;
+          return {
+            fret: pos[k].fret,
+            finger: (base === 0 && pos[k].fret === 0) ? 0 : rels.indexOf(pos[k].fret - base) + 1,
+          };
+        }),
+      });
+    }
+  });
+  return out;
 }
 
 function getVoicings(root, q){
   const set = SHAPES[q];
-  if (!set) return [];
-  const f6 = (root + 12 - 4) % 12;
-  const f5 = (root + 12 - 9) % 12;
-  const f4 = (root + 12 - 2) % 12;
   const out = [];
-  if (set.r6) out.push(makeVoicing(set.r6, f6, 0));
-  if (set.r5) out.push(makeVoicing(set.r5, f5, 1));
-  if (set.r4) out.push(makeVoicing(set.r4, f4, 2));
-  out.sort((a, b) => a.base - b.base || a.rootString - b.rootString);
-  return out;
+  if (set){
+    const f6 = (root + 12 - 4) % 12;
+    const f5 = (root + 12 - 9) % 12;
+    const f4 = (root + 12 - 2) % 12;
+    if (set.r6) out.push(makeVoicing(set.r6, f6, 0, "f"));
+    if (set.r5) out.push(makeVoicing(set.r5, f5, 1, "f"));
+    if (set.r4) out.push(makeVoicing(set.r4, f4, 2, "f"));
+  }
+  partialVoicings(root, q).forEach(v => out.push(v));
+  const seen = new Set();
+  const dedup = out.filter(function(v){
+    const sig = v.pos.map((p, si) => p ? si + ":" + p.fret : "x").join(",");
+    if (seen.has(sig)) return false;
+    seen.add(sig);
+    return true;
+  });
+  dedup.sort((a, b) => a.base - b.base || a.rootString - b.rootString);
+  return dedup;
 }
 
 function currentVoicing(c){
@@ -619,7 +702,7 @@ const state = {
   naming: "latin", nFrets: 12, tonic: 0,
   genreIdx: 0, progIdx: 0, ci: 0,
   bpm: 90, beats: 4, playing: false,
-  showDeg: true, sugIdx: 0, navMode: "prevnext",
+  showDeg: true, sugIdx: 0, navMode: "prevnext", markMode: "notes", theme: "sombre",
   prog: null, sug: [], timer: null,
   voiIdx: 0, lastCi: -1,
 };
@@ -662,16 +745,11 @@ function renderProgList(){
   const box = el("progList");
   box.innerHTML = "";
   GENRES[state.genreIdx].progs.forEach((p, i) => {
-    const item = document.createElement("label");
+    const item = document.createElement("button");
+    item.type = "button";
     item.className = "prog-item" + (i === state.progIdx ? " active" : "");
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = !!p.checked;
-    cb.addEventListener("click", function(ev){ ev.stopPropagation(); });
-    cb.addEventListener("change", function(){ p.checked = cb.checked; });
     const span = document.createElement("span");
     span.textContent = p.name;
-    item.appendChild(cb);
     item.appendChild(span);
     item.addEventListener("click", function(){
       stopPlay();
@@ -715,13 +793,28 @@ function renderNow(){
   bits.push("notes : <b>" + c.tones.map(t => noteName((c.root + t) % 12)).join(" · ") + "</b>");
   const v = currentVoicing(c);
   if (v){
-    bits.push("position : frette <b>" + v.base + "</b> · " + FORM_NAMES[v.rootString]);
-    el("btnForme").textContent = (c.voicings.length > 1 ? "Forme suivante : " : "Forme : ") + FORM_NAMES[v.rootString];
+    bits.push("position : frette <b>" + v.base + "</b> · " + voicingLabel(v));
+    el("btnForme").textContent = "Forme suivante";
     el("btnForme").classList.toggle("hidden", c.voicings.length < 2);
   } else {
     el("btnForme").classList.add("hidden");
   }
   el("chordMeta").innerHTML = bits.join("<br>");
+  const nb = el("notesBox");
+  nb.innerHTML = "";
+  const prim = state.naming === "latin";
+  const sec = document.createElement("span");
+  sec.className = "sec";
+  c.tones.forEach(function(t, k){
+    const pc = (c.root + t) % 12;
+    if (k > 0) nb.appendChild(document.createTextNode(", "));
+    const s = document.createElement("b");
+    s.textContent = prim ? NOTE_LATIN[pc] : NOTE_ANGLO[pc];
+    if (k === 0) s.className = "rt";
+    nb.appendChild(s);
+  });
+  sec.textContent = "  (" + c.tones.map(t => (prim ? NOTE_ANGLO : NOTE_LATIN)[(c.root + t) % 12]).join(" · ") + ")" + (prim ? "" : "") + " — tonique : " + noteName(c.root);
+  nb.appendChild(sec);
   renderDiagram(c);
   el("btnPrev").innerHTML = state.navMode === "prevnext" ? ICON_BACK + " Précédent" : ICON_BACK;
   el("btnNext").innerHTML = state.navMode === "prevnext" ? "Suivant " + ICON_FWD : ICON_FWD;
@@ -739,7 +832,7 @@ function renderDiagram(c){
   for (let si = 0; si < 6; si++){
     const t = document.createElement("div");
     t.className = "top" + (v.pos[si] === null ? " muted" : "");
-    t.textContent = v.pos[si] === null ? "×" : (v.pos[si].fret === 0 ? "○" : "");
+    t.textContent = !v.pos[si] ? "×" : (v.pos[si].fret === 0 ? "○" : "");
     cb.appendChild(t);
   }
   for (let r = 0; r < 4; r++){
@@ -755,7 +848,7 @@ function renderDiagram(c){
       if (p && p.fret === fretN){
         const d = document.createElement("span");
         d.className = "dotp " + (p.finger === 0 ? "f2" : "f1");
-        d.textContent = p.finger === 0 ? "○" : String(p.finger);
+        d.textContent = p.finger > 0 ? String(p.finger) : "○";
         cell.appendChild(d);
         cell.style.cursor = "pointer";
         cell.title = noteName((TUNING[si] + p.fret) % 12) + " — corde " + (si + 1) + ", frette " + p.fret;
@@ -788,7 +881,7 @@ function buildBoard(host, infoFn){
       if (info){
         const b = document.createElement("button");
         b.className = "mark " + info.cls;
-        b.style.fontSize = info.text.length > 1 ? "9px" : "11px";
+        b.style.fontSize = info.text.length > 2 ? "8px" : (info.text.length > 1 ? "9px" : "11px");
         b.textContent = info.text;
         b.title = info.title;
         b.addEventListener("click", function(){ playNote(TUNING[si] + f); });
@@ -839,13 +932,14 @@ function renderBoard1(){
   const map = {};
   const v = currentVoicing(c);
   if (v){
+    const showFingers = state.markMode === "doigts";
     v.pos.forEach((p, si) => {
       if (!p) return;
       const pc = (TUNING[si] + p.fret) % 12;
       map[si + ":" + p.fret] = {
-        text: p.finger === 0 ? "○" : String(p.finger),
+        text: showFingers ? (p.finger > 0 ? String(p.finger) : "○") : noteName(pc),
         cls: pc === c.root ? "rt" : "ct",
-        title: noteName(pc) + " — corde " + (si + 1) + ", frette " + p.fret + (p.finger ? " · doigt " + p.finger : " · corde à vide"),
+        title: noteName(pc) + " — corde " + (si + 1) + ", frette " + p.fret + (p.finger > 0 ? " · doigt " + p.finger : " · corde à vide"),
       };
     });
   } else {
@@ -1016,8 +1110,7 @@ function neighborChord(dir){
 }
 
 function randomProg(){
-  const pool = GENRES[state.genreIdx].progs.filter(p => p.checked);
-  const list = pool.length ? pool : GENRES[state.genreIdx].progs;
+  const list = GENRES[state.genreIdx].progs;
   const pick = list[Math.floor(Math.random() * list.length)];
   stopPlay();
   state.progIdx = GENRES[state.genreIdx].progs.indexOf(pick);
@@ -1039,6 +1132,18 @@ function fillRoots(){
 }
 
 if (typeof document !== "undefined"){
+  try{ state.theme = localStorage.getItem("guitare-theme") || "sombre"; }catch(e){}
+  el("themeSel").value = state.theme;
+  document.body.classList.toggle("light", state.theme === "clair");
+  el("themeSel").addEventListener("change", function(e){
+    state.theme = e.target.value;
+    document.body.classList.toggle("light", state.theme === "clair");
+    try{ localStorage.setItem("guitare-theme", state.theme); }catch(err){}
+  });
+  el("markModeSel").addEventListener("change", function(e){
+    state.markMode = e.target.value;
+    renderBoard1();
+  });
   renderGenreChips();
   fillRoots();
   el("rootSel").addEventListener("change", function(e){ state.tonic = Number(e.target.value); render(); });
