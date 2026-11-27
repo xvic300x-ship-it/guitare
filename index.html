@@ -125,6 +125,9 @@
     .slabel{font-size:9px}
     .frow .fcell{height:30px}
   }
+  .topbar{display:flex;gap:14px;align-items:flex-end;justify-content:flex-end;margin:0 0 10px;flex-wrap:wrap}
+  .topbar label.ctl{font-size:11px}
+  .topbar select{padding:5px 8px;font-size:13px}
   .tabs{display:flex;gap:8px;margin:0 0 18px}
   .tab{background:var(--panel);border:1px solid var(--border);border-radius:10px 10px 0 0;padding:10px 20px;font-size:15px;font-weight:600;cursor:pointer;border-bottom:none;opacity:.55}
   .tab:hover{opacity:.85}
@@ -133,6 +136,16 @@
 </head>
 <body>
 <h1>Progressions d'accords — Guitare</h1>
+<div class="topbar">
+  <label class="ctl">Thème <select id="themeSel">
+    <option value="sombre">Sombre</option>
+    <option value="clair">Clair</option>
+  </select></label>
+  <label class="ctl">Format des notes <select id="namingSel">
+    <option value="latin">Do Ré Mi (latin)</option>
+    <option value="anglo">C D E (anglo)</option>
+  </select></label>
+</div>
 <div class="tabs">
   <button class="tab selected" id="tabProgs" type="button">Progressions d'accords</button>
   <button class="tab" id="tabGamme" type="button">Gamme</button>
@@ -147,15 +160,7 @@
     <h3>Progressions — clique pour charger ; « Aléatoire » pioche parmi celles du style</h3>
     <div class="progs" id="progList"></div>
     <div class="row" style="margin-top:14px">
-      <label class="ctl">Thème <select id="themeSel">
-        <option value="sombre">Sombre</option>
-        <option value="clair">Clair</option>
-      </select></label>
       <label class="ctl">Tonique <select id="rootSel"></select></label>
-      <label class="ctl">Notation <select id="namingSel">
-        <option value="latin">Do Ré Mi (latin)</option>
-        <option value="anglo">C D E (anglo)</option>
-      </select></label>
       <label class="ctl">Frettes affichées <select id="fretSel">
         <option value="12">12</option>
         <option value="15">15</option>
@@ -1158,13 +1163,22 @@ function playChordNotes(rootPc, tones){
   });
 }
 
+const STEP_DEGREE = { 0: "1", 1: "♭2", 2: "2", 3: "♭3", 4: "3", 5: "4", 6: "♭5", 7: "5", 8: "♭6", 9: "6", 10: "♭7", 11: "7" };
+
+function stepDegreeLabel(semi, sd){
+  // Tritone : ♯4 quand la quinte juste est présente (lydienne…), ♭5 sinon (blues, locrienne)
+  if (semi === 6) return (sd.name === "blues" || sd.name === "locrienne") ? "♭5" : "♯4";
+  return STEP_DEGREE[semi];
+}
+
 function renderScaleTab(){
   const sd = SCALES[GTAB.scale];
   const pcs = scalePcs(GTAB.root, sd.steps);
   el("gInfo").innerHTML = "<b>" + noteName(GTAB.root) + " " + sd.name + "</b> — " +
     pcs.map(p => noteName(p)).join(" · ") +
     "<br><span class=\"sec\">formule : " + scaleFormula(sd.steps) +
-    (pcs.length === 7 ? " · 7 notes" : " · " + pcs.length + " notes") + "</span>";
+    (pcs.length === 7 ? " · 7 notes" : " · " + pcs.length + " notes") +
+    " &nbsp;·&nbsp; degrés : " + sd.steps.map(s => stepDegreeLabel(s, sd)).join(" · ") + "</span>";
   buildBoard(el("gBoard"), function(si, f){
     const pc = (TUNING[si] + f) % 12;
     const idx = pcs.indexOf(pc);
