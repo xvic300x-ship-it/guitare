@@ -52,14 +52,15 @@
   input[type=range]{accent-color:var(--accent);width:150px}
   .bpmval{font-variant-numeric:tabular-nums;min-width:64px;color:var(--accent);font-weight:700}
   .boards{display:block}
-  .fb-wrap{overflow-x:auto;padding-bottom:6px}
+  .fb-wrap{overflow-x:hidden;overflow-y:hidden;padding-bottom:6px;scrollbar-width:none}
+  .fb-wrap::-webkit-scrollbar{display:none;height:0;width:0}
   .fb-grid{min-width:0;width:100%}
   .frow{display:grid;grid-template-columns:36px var(--fretcols);position:relative}
   .frow .fcell{height:34px;display:flex;align-items:center;justify-content:center;position:relative;border-right:1px solid var(--wire)}
   .frow .fcell.nut{border-right:4px solid #d8cbb4;background:rgba(0,0,0,.25)}
   .frow.str::before{content:"";position:absolute;left:36px;right:0;top:50%;height:var(--sth);transform:translateY(-50%);background:linear-gradient(90deg,#cfc6b8,#8f8878);border-radius:2px;z-index:0}
   .frow .fcell > *{position:relative;z-index:1}
-  .mark{width:88%;max-width:26px;min-width:14px;aspect-ratio:1;height:auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:none;cursor:pointer;padding:0;overflow:hidden}
+  .mark{width:88%;max-width:26px;aspect-ratio:1;height:auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:none;cursor:pointer;padding:0;overflow:hidden}
   .sc{background:#39424f;color:#aab4c2}
   .sc:hover{background:#47525f}
   .ct{background:var(--accent);color:#241a05}
@@ -289,7 +290,7 @@
       </select></label>
     </div>
     <div class="meta" id="gInfo"></div>
-    <div id="gBoard" style="overflow-x:auto;padding:6px 0"></div>
+    <div id="gBoard" class="fb-wrap"></div>
     <h3 style="margin-top:14px">Accords de la gamme — clique pour entendre</h3>
     <div class="chipscales" id="gChords"></div>
     <div class="hint">Rond rouge = tonique de la gamme · ronds jaunes = autres notes de la gamme. Clique sur une note pour l'entendre, sur un accord pour l'écouter.</div>
