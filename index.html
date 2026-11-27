@@ -11,6 +11,7 @@
     --wire:rgba(255,255,255,.14);
   }
   *{box-sizing:border-box}
+  button{color:inherit;font-family:inherit;font-size:inherit}
   body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;padding:24px}
   h1{font-size:22px;margin:0 0 4px}
   .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
@@ -62,7 +63,7 @@
   .sc{background:#39424f;color:#aab4c2}
   .sc:hover{background:#47525f}
   .ct{background:var(--accent);color:#241a05}
-  .rt{background:var(--root);color:#fff}
+  .mark.rt{background:var(--root);color:#fff}
   .op{background:transparent;border:2px solid #aab4c2;color:#aab4c2}
   .nonmark{width:26px;height:26px}
   .fnum{font-size:11px;color:var(--muted);height:22px}
@@ -405,6 +406,7 @@ const ICON_DICE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 const ICON_BACK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>';
 const ICON_FWD = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>';
 const ICON_STRUM = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 8 20 8"/><polyline points="5 14 19 14"/><polyline points="7 20 17 20"/><polyline points="12 2 9 8 12 14 15 8 12 2" fill="none"/></svg>';
+const ICON_BOOK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
 
 function noteName(pc){ return (state.naming === "latin" ? NOTE_LATIN : NOTE_ANGLO)[pc]; }
 function scalePcs(rootPc, steps){ return steps.map(s => (rootPc + s) % 12); }
@@ -449,7 +451,7 @@ function makeVoicing(shp, base, rootString, kind){
 }
 
 function voicingLabel(v){
-  if (v.kind === "p") return "triade cordes " + (6 - v.rootString) + "·" + (5 - v.rootString) + "·" + (4 - v.rootString);
+  if (v.kind === "p") return ICON_BOOK + " Progression book — triade cordes " + (6 - v.rootString) + "·" + (5 - v.rootString) + "·" + (4 - v.rootString);
   return FORM_NAMES[v.rootString];
 }
 
