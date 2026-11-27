@@ -206,7 +206,10 @@
       <button class="btn" id="btnNext">▶</button>
       <span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
       <button class="btn" id="btnStrum">Séquence complète</button>
-      <button class="btn" id="btnForme"></button>
+      <span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
+      <button class="btn" id="btnFormePrev">◀</button>
+      <span class="counter" id="formeCounter">Forme 1 / 1</span>
+      <button class="btn" id="btnFormeNext">▶</button>
     </div>
     <div class="now">
       <div>
@@ -437,6 +440,7 @@ function buildProgression(genreIdx, progIdx, tonic){
   const chords = p.deg.map(tk => parseToken(tk, p.mode, tonic, !!p.power)).filter(Boolean);
   chords.forEach(c => {
     c.voicings = getVoicings(c.root, c.quality);
+    c.voiSel = 0;
     c.label = noteName(c.root) + QUALITY_SUFFIX[c.quality];
   });
   return { def: p, chords };
@@ -513,7 +517,17 @@ function getVoicings(root, q){
 
 function currentVoicing(c){
   if (!c.voicings || !c.voicings.length) return null;
-  return c.voicings[state.voiIdx % c.voicings.length];
+  return c.voicings[(c.voiSel || 0) % c.voicings.length];
+}
+
+function stepForme(dir){
+  const c = state.prog.chords[state.ci];
+  if (!c.voicings || c.voicings.length < 2) return;
+  const n = c.voicings.length;
+  c.voiSel = (((c.voiSel || 0) + dir) % n + n) % n;
+  renderNow();
+  renderBoard1();
+  strum(c);
 }
 
 function suggestScales(chords){
@@ -706,15 +720,22 @@ const state = {
   bpm: 90, beats: 4, playing: false,
   showDeg: true, sugIdx: 0, navMode: "prevnext", markMode: "notes", theme: "sombre",
   prog: null, sug: [], timer: null,
-  voiIdx: 0, lastCi: -1,
 };
 
 function el(id){ return document.getElementById(id); }
 
+function progKey(){ return state.genreIdx + ":" + state.progIdx + ":" + state.tonic; }
+
 function render(){
+  const key = progKey();
+  const sameProg = state.lastProgKey === key;
+  state.lastProgKey = key;
+  const prevVois = sameProg && state.prog ? state.prog.chords.map(c => c.voiSel || 0) : null;
   state.prog = buildProgression(state.genreIdx, state.progIdx, state.tonic);
+  if (prevVois && prevVois.length === state.prog.chords.length){
+    state.prog.chords.forEach(function(c, i){ c.voiSel = prevVois[i]; });
+  }
   if (state.ci >= state.prog.chords.length) state.ci = 0;
-  if (state.ci !== state.lastCi){ state.voiIdx = 0; state.lastCi = state.ci; }
   state.sug = suggestScales(state.prog.chords);
   if (state.sugIdx >= state.sug.length) state.sugIdx = 0;
   renderProgList();
@@ -794,12 +815,15 @@ function renderNow(){
   bits.push("<b>" + c.numeral + "</b> · " + QUALITY_LABEL[c.quality]);
   bits.push("notes : <b>" + c.tones.map(t => noteName((c.root + t) % 12)).join(" · ") + "</b>");
   const v = currentVoicing(c);
+  const hasForms = !!(c.voicings && c.voicings.length);
   if (v){
     bits.push("position : frette <b>" + v.base + "</b> · " + voicingLabel(v));
-    el("btnForme").textContent = "Forme suivante";
-    el("btnForme").classList.toggle("hidden", c.voicings.length < 2);
-  } else {
-    el("btnForme").classList.add("hidden");
+  }
+  el("btnFormePrev").classList.toggle("hidden", !hasForms || c.voicings.length < 2);
+  el("btnFormeNext").classList.toggle("hidden", !hasForms || c.voicings.length < 2);
+  el("formeCounter").classList.toggle("hidden", !hasForms || c.voicings.length < 2);
+  if (hasForms){
+    el("formeCounter").textContent = "Forme " + ((c.voiSel || 0) % c.voicings.length + 1) + " / " + c.voicings.length;
   }
   el("chordMeta").innerHTML = bits.join("<br>");
   const nb = el("notesBox");
@@ -1037,6 +1061,7 @@ function currentFav(){
     prog: p.name,
     tonic: state.tonic,
     note: el("favNote").value.trim(),
+    vois: state.prog.chords.map(c => c.voiSel || 0),
   };
 }
 function renderFavs(){
@@ -1083,6 +1108,15 @@ function renderFavs(){
       state.ci = 0;
       renderGenreChips();
       render();
+      if (fv.vois && state.prog){
+        state.prog.chords.forEach(function(c, i){
+          if (fv.vois[i] != null && c.voicings && c.voicings.length){
+            c.voiSel = fv.vois[i] % c.voicings.length;
+          }
+        });
+        renderNow();
+        renderBoard1();
+      }
     });
     const del = document.createElement("button");
     del.className = "del";
@@ -1198,13 +1232,11 @@ if (typeof document !== "undefined"){
     el("favNote").value = "";
     renderFavs();
   });
-  el("btnForme").addEventListener("click", function(){
-    const c = state.prog.chords[state.ci];
-    if (!c.voicings || c.voicings.length < 2) return;
-    state.voiIdx = (state.voiIdx + 1) % c.voicings.length;
-    renderNow();
-    renderBoard1();
-    strum(c);
+  el("btnFormeNext").addEventListener("click", function(){
+    stepForme(1);
+  });
+  el("btnFormePrev").addEventListener("click", function(){
+    stepForme(-1);
   });
   el("btnStrum").addEventListener("click", function(){
     stopPlay();
