@@ -53,19 +53,19 @@
   .bpmval{font-variant-numeric:tabular-nums;min-width:64px;color:var(--accent);font-weight:700}
   .boards{display:block}
   .fb-wrap{overflow-x:auto;padding-bottom:6px}
-  .fb-grid{min-width:640px}
+  .fb-grid{min-width:0;width:100%}
   .frow{display:grid;grid-template-columns:36px var(--fretcols);position:relative}
   .frow .fcell{height:34px;display:flex;align-items:center;justify-content:center;position:relative;border-right:1px solid var(--wire)}
   .frow .fcell.nut{border-right:4px solid #d8cbb4;background:rgba(0,0,0,.25)}
   .frow.str::before{content:"";position:absolute;left:36px;right:0;top:50%;height:var(--sth);transform:translateY(-50%);background:linear-gradient(90deg,#cfc6b8,#8f8878);border-radius:2px;z-index:0}
   .frow .fcell > *{position:relative;z-index:1}
-  .mark{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:none;cursor:pointer;padding:0}
+  .mark{width:88%;max-width:26px;min-width:14px;aspect-ratio:1;height:auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:none;cursor:pointer;padding:0;overflow:hidden}
   .sc{background:#39424f;color:#aab4c2}
   .sc:hover{background:#47525f}
   .ct{background:var(--accent);color:#241a05}
   .mark.rt{background:var(--root);color:#fff}
   .op{background:transparent;border:2px solid #aab4c2;color:#aab4c2}
-  .nonmark{width:26px;height:26px}
+  .nonmark{width:88%;max-width:26px;min-width:14px;aspect-ratio:1;height:auto}
   .fnum{font-size:11px;color:var(--muted);height:22px}
   .slabel{font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:center}
   .inlay{height:14px;position:relative}
@@ -116,6 +116,14 @@
   .fav-item .fnote{color:var(--muted);font-size:13px;flex:1}
   .fav-item .del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:6px}
   .fav-item .del:hover{color:var(--root);background:rgba(224,83,47,.12)}
+  @media (max-width:760px){
+    body{padding:10px}
+    .panel{padding:10px}
+    .frow{grid-template-columns:22px var(--fretcols)}
+    .frow.str::before{left:22px}
+    .slabel{font-size:9px}
+    .frow .fcell{height:30px}
+  }
   .tabs{display:flex;gap:8px;margin:0 0 18px}
   .tab{background:var(--panel);border:1px solid var(--border);border-radius:10px 10px 0 0;padding:10px 20px;font-size:15px;font-weight:600;cursor:pointer;border-bottom:none;opacity:.55}
   .tab:hover{opacity:.85}
@@ -936,7 +944,7 @@ function buildBoard(host, infoFn){
   const n = state.nFrets;
   const grid = document.createElement("div");
   grid.className = "fb-grid";
-  grid.style.setProperty("--fretcols", "repeat(" + (n + 1) + ", minmax(34px, 1fr))");
+  grid.style.setProperty("--fretcols", "repeat(" + (n + 1) + ", minmax(0, 1fr))");
   [5, 4, 3, 2, 1, 0].forEach(function(si){
     const row = document.createElement("div");
     row.className = "frow str";
